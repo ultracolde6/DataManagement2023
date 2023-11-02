@@ -237,7 +237,8 @@ class GagePreprocessor:
 
             # calculate complex amplitude for each time bin
             for i,t0_idx in enumerate(t0_idx_list):
-                t1_idx = t0_idx + self.filter_time*self.samp_freq
+                t0_idx = int(t0_idx)
+                t1_idx = int(t0_idx + self.filter_time*self.samp_freq)
                 cmplx_amp_list_ch1[i] = (ch1_demod_sum[t1_idx] - ch1_demod_sum[t0_idx]) / (t1_idx-t0_idx)
                 cmplx_amp_list_ch3[i] = (ch3_demod_sum[t1_idx] - ch3_demod_sum[t0_idx]) / (t1_idx-t0_idx)
 
