@@ -1,3 +1,4 @@
+# %%
 from pathlib import Path
 import numpy as np 
 import h5py
@@ -20,8 +21,9 @@ import os
 import pandas as pd
 import ipyparams
 
+
+# %%
 ########################### User input section ############################
-# run info
 currentnotebook_name = ipyparams.notebook_name
 run_name = currentnotebook_name[:-6]
 run_name = 'run0'
@@ -59,7 +61,7 @@ else:
 num_points = len(point_list)
 
 # gagescope parameters
-
+# %%
 reset_gage = reset_hard
 # reset_gage = True
 time_me = True
@@ -86,7 +88,7 @@ conversion_factor = voltage_conversion*photonrate_conversion*heterodyne_conversi
 # filter_type = "square"
 datastream_name_gage='gage'
 working_path_gage = Path.cwd().parent
-data_path_gage = working_path_gage/'data'/run_name/datastream_name_gage
+data_path_gage = working_path_gage/'DataManagement2023'
 file_prefix_gage = 'gage_shot'
 path, dirs, files = next(os.walk(data_path_gage))
 num_shot_gage_start = 0
@@ -94,6 +96,8 @@ num_shots_gage = len(files)
 if override_num_shots:
     num_shots_gage = num_shots_manual
 
+
+# %%
 # start processing
 def load_file(start_time, run_name, filter_time, step_time, time_me):
     try:
@@ -276,5 +280,9 @@ def main():
     print(f"total time elapsed {time.time()-start} s")
 
 
+# %%
+main()
+
+# %%
 if __name__ == '__main__':
     main()
