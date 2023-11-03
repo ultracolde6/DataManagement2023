@@ -297,43 +297,9 @@ class GagePreprocessor:
 
 # %%
 ########################### User input section ############################
-run_name = 'run0'
-
-#Boolean input
-override_num_shots = False
-reset_hard = False #only set this to true if you want to reload from raw data
-
-#number input
-num_shots_manual = 500
-num_frames = 3
-outer_zoom_factor = 5
-
-point_name_outer = 'sideprobe_intensity'
-point_name_inner = 'cav_pzt'
-
-point_list_outer = np.array([1.7]) #ControlV_Power(np.array([1,1.2,1.4,1.6,1.8,2,2.5,4]))
-point_list_inner = np.linspace(-0.6,0.6,7)
-
-tweezer_freq_list = 88 + 0.8*0 + 0.8*np.arange(40)
-twz_num_plot=np.array([18])
-atom_site = []
-for i in range(num_frames):
-    atom_site.append(np.arange(len(tweezer_freq_list)))
-
-#################################################################################
-num_points_inner = len(point_list_inner)
-num_points_outer = len(point_list_outer)
-
-if num_points_outer == 1:
-    point_list = np.array(point_list_inner)
-else:
-    point_list = (outer_zoom_factor*np.outer(point_list_outer,np.ones(len(point_list_inner))) + np.outer(np.ones(len(point_list_outer)),point_list_inner)).flatten()
-    plt.plot(point_list)
-num_points = len(point_list)
-
-# gagescope parameters
+run_name = 'run0'# gagescope parameters
 # %%
-reset_gage = reset_hard
+reset_gage = True
 time_me = True
 plot_tenth_shot = True
 

@@ -1,6 +1,7 @@
 import tkinter as tk
 import GagePreprocess as gp
 import numpy as np
+import json
 
 class GagePreprocessGUI:
     def __init__(self, master):
@@ -73,6 +74,15 @@ class GagePreprocessGUI:
         print(f"Filter Time: {filter_time}")
         print(f"LO Power: {LO_power}")
         
+        # write the settings to a json file
+        settings = {"het_freq": het_freq,
+                    "dds_freq": dds_freq,
+                    "samp_freq": samp_freq,
+                    "step_time": step_time,
+                    "filter_time": filter_time,
+                    "LO_power": LO_power,
+                    "kappa": kappa,
+                    "plot_bool": plot_bool}
         # Run the GagePreprocess function
         gage_preprocessor = gp.GagePreprocessor("run0",
                                                 filter_time,
@@ -86,7 +96,9 @@ class GagePreprocessGUI:
                                                 LO_power)
         
         gage_preprocessor.gage_loop()
-
+        with open('log' + file_name + '.json', 'w') as fp:
+            json.dump(settings, fp)
+            
 root = tk.Tk()
 my_gui = GagePreprocessGUI(root)
 root.mainloop()
