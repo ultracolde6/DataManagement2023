@@ -1,6 +1,8 @@
 import tkinter as tk
 import GagePreprocess as gp
 import numpy as np
+import FolderOps as fo
+import os
 
 class GagePreprocessGUI:
     def __init__(self, master):
@@ -26,6 +28,8 @@ class GagePreprocessGUI:
         self.filter_time_entry = tk.Entry(master)
         self.plot_bool = tk.Label(master, text="Plot? (True/False):")
         self.plot_bool_entry = tk.Entry(master)
+        self.backup_disk = tk.Label(master, text="Backup Disk (e.g. /media/backup/):")
+        self.backup_disk_entry = tk.Entry(master)
 
         # Set default values for each entry box
         self.het_freq_entry.insert(0, "20")
@@ -35,6 +39,7 @@ class GagePreprocessGUI:
         self.LO_power_entry.insert(0, "314")
         self.kappa_entry.insert(0, "1.1")
         self.plot_bool_entry.insert(0, "True")
+        self.backup_disk_entry.insert(0, "/backup/")
 
         # Create a button to submit the input values
         self.submit_button = tk.Button(master, text="Submit", command=self.submit)
@@ -50,7 +55,14 @@ class GagePreprocessGUI:
         self.filter_time_entry.pack()
         self.LO_power_label.pack()
         self.LO_power_entry.pack()
+        self.kappa_label.pack()
+        self.kappa_entry.pack()
+        self.plot_bool.pack()
+        self.plot_bool_entry.pack()
+        self.backup_disk.pack()
+        self.backup_disk_entry.pack()
         self.submit_button.pack()
+
 
     def submit(self):
         # Get the values from the entry boxes and store them in variables
@@ -63,6 +75,7 @@ class GagePreprocessGUI:
         # convert string with pi in it to float
         kappa = float(self.kappa_entry.get()) * 2 * np.pi
         plot_bool = self.plot_bool_entry.get()
+        backup_disk = self.backup_disk_entry.get()
         
 
         # Do something with the variables (e.g. print them to the console)
@@ -84,8 +97,10 @@ class GagePreprocessGUI:
                                                 samp_freq,
                                                 kappa,
                                                 LO_power)
-        
-        gage_preprocessor.gage_loop()
+        dir = os.path.dirname(__file__)
+        gage_folder = "DataPathGage"
+        fo.make_tarfile(dir+backup_disk, gage_folder)
+        fo.kill_processed_file(gage_folder)
 
 root = tk.Tk()
 my_gui = GagePreprocessGUI(root)

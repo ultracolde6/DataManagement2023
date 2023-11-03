@@ -20,10 +20,8 @@ import pickle
 import os
 import pandas as pd
 
-# TODO: Let's build up a front panel for the gage parameters
 # TODO: Fix up the file storage scheme and folder crawling scheme
 # TODO: Develop method to shuttle files to external drive
-# TODO: Set up default and user processing options
 # TODO: Set up automated background processing
 
 
@@ -61,8 +59,9 @@ class GagePreprocessor:
         self.heterodyne_conversion = 1/np.sqrt(self.LO_rate) # np.sqrt(count/us)
         self.cavity_conversion = 1/np.sqrt(self.kappa)
         self.conversion_factor = VOLTAGE_CONVERSION*PHOTON_ENERGY*self.heterodyne_conversion*self.cavity_conversion
-
-        self.data_path_gage = Path('c:/Users/tyxia/Documents/UltracoldRepos/DataManagement2023/')
+        # temporary path just for testing
+        dir = os.path.dirname(__file__)
+        self.data_path_gage = Path(dir+'/DataPathGage')
         self.file_prefix_gage = 'gage_shot'
         # path, dirs, files = next(os.walk(data_path_gage))
         num_shot_gage_start = 0
@@ -252,11 +251,11 @@ class GagePreprocessor:
 
         # plot tenth shot
         if self.plot_bool and shot_num == 50:
-            plot_tenth_shot(cmplx_amp_list_ch1,
-                            cmplx_amp_list_ch3,
-                            ch1,
-                            ch3,
-                            t0_list)
+            self.plot_tenth_shot(cmplx_amp_list_ch1,
+                                cmplx_amp_list_ch3,
+                                ch1,
+                                ch3,
+                                t0_list)
 
         return cmplx_amp_array
     
@@ -293,89 +292,5 @@ class GagePreprocessor:
         print('done')
         print(f"number of {self.num_shots_gage} shots loaded")
         print(f"total time elapsed {time.time()-self.start_time} s")
-        
 
-# %%
-########################### User input section ############################
-run_name = 'run0'
-
-#Boolean input
-override_num_shots = False
-reset_hard = False #only set this to true if you want to reload from raw data
-
-#number input
-num_shots_manual = 500
-num_frames = 3
-outer_zoom_factor = 5
-
-point_name_outer = 'sideprobe_intensity'
-point_name_inner = 'cav_pzt'
-
-point_list_outer = np.array([1.7]) #ControlV_Power(np.array([1,1.2,1.4,1.6,1.8,2,2.5,4]))
-point_list_inner = np.linspace(-0.6,0.6,7)
-
-tweezer_freq_list = 88 + 0.8*0 + 0.8*np.arange(40)
-twz_num_plot=np.array([18])
-atom_site = []
-for i in range(num_frames):
-    atom_site.append(np.arange(len(tweezer_freq_list)))
-
-#################################################################################
-num_points_inner = len(point_list_inner)
-num_points_outer = len(point_list_outer)
-
-if num_points_outer == 1:
-    point_list = np.array(point_list_inner)
-else:
-    point_list = (outer_zoom_factor*np.outer(point_list_outer,np.ones(len(point_list_inner))) + np.outer(np.ones(len(point_list_outer)),point_list_inner)).flatten()
-    plt.plot(point_list)
-num_points = len(point_list)
-
-# gagescope parameters
-# %%
-reset_gage = reset_hard
-time_me = True
-plot_tenth_shot = True
-
-het_freq = 20.000446 #MHz
-dds_freq = het_freq/2
-samp_freq = 200 #MHz
-step_time = 50 #us
-filter_time = 100 #us
-
-PHOTON_ENERGY = 2.55e-19
-photonrate_conversion = 1e-6/(2e7)/ PHOTON_ENERGY / (0.5*0.8) # count/us
-voltage_conversion = 1000/32768 #in units of mV
-kappa = 2*np.pi * 1.1 #MHz
-LO_power = 314 #uW
-LO_rate = 1e-12 * LO_power / PHOTON_ENERGY # count/us
-#2e7 is the conversion gain, 2.55e-19 is single photon energy, the rest is the path efficiency
-heterodyne_conversion = 1/np.sqrt(LO_rate) # np.sqrt(count/us)
-
-cavity_conversion = 1/np.sqrt(kappa)
-conversion_factor = voltage_conversion*photonrate_conversion*heterodyne_conversion*cavity_conversion
-
-datastream_name_gage='gage'
-working_path_gage = Path.cwd().parent
-data_path_gage = working_path_gage/'DataManagement2023'
-file_prefix_gage = 'gage_shot'
-path, dirs, files = next(os.walk(data_path_gage))
-num_shot_gage_start = 0
-num_shots_gage = len(files)
-if override_num_shots:
-    num_shots_gage = num_shots_manual
-
-
-gage_obj = GagePreprocessor(run_name, 
-                            filter_time, 
-                            step_time, 
-                            time_me, 
-                            plot_tenth_shot, 
-                            het_freq, 
-                            dds_freq, 
-                            samp_freq, 
-                            kappa, 
-                            LO_power)
-
-gage_obj.gage_loop()
-# %%
+        return self.data_path_gage
