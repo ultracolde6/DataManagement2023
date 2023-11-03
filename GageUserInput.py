@@ -96,6 +96,8 @@ class GagePreprocessGUI:
                     "LO_power": LO_power,
                     "kappa": kappa,
                     "plot_bool": plot_bool}
+        with open('log' + file_name + '.json', 'w') as fp:
+            json.dump(settings, fp)
         # Run the GagePreprocess function
         gage_preprocessor = gp.GagePreprocessor("run0",
                                                 filter_time,
@@ -111,8 +113,7 @@ class GagePreprocessGUI:
         gage_folder = "DataPathGage"
         fo.make_tarfile(dir+backup_disk, gage_folder)
         fo.kill_processed_file(gage_folder)
-        with open('log' + file_name + '.json', 'w') as fp:
-            json.dump(settings, fp)
+        
             
 root = tk.Tk()
 my_gui = GagePreprocessGUI(root)
