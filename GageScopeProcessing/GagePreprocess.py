@@ -61,13 +61,12 @@ class GagePreprocessor:
         self.cavity_conversion = 1/np.sqrt(self.kappa)
         self.conversion_factor = VOLTAGE_CONVERSION*PHOTON_ENERGY*self.heterodyne_conversion*self.cavity_conversion
         # temporary path just for testing
-        dir = os.path.dirname(__file__)
-        self.data_path_gage = Path('run9/gage/')
+        self.data_path_gage = run_name + '/' + 'gage'
         self.file_prefix_gage = 'gage_shot'
-        # path, dirs, files = next(os.walk(data_path_gage))
+        
+        path, dirs, files = next(os.walk(self.data_path_gage))
         num_shot_gage_start = 0
-        # self.num_shots_gage = len(files)
-        self.num_shots_gage = 1
+        self.num_shots_gage = len(files)
         self.file_reading_time = 0
         self.inner_product_time = 0
 
@@ -217,7 +216,7 @@ class GagePreprocessor:
             #mask_valid_data[shot_num]:
             # construct file name
             file_name_gage = self.file_prefix_gage+'_'+str(shot_num).zfill(5)+'.h5'
-            hf = h5py.File(self.data_path_gage/file_name_gage, 'r')
+            hf = h5py.File(self.data_path_gage + '/' + file_name_gage, 'r')
             
             # read data and apply conversion factor
             ch1 = np.array(hf['CH1']) * self.conversion_factor #np.sqrt(n)
@@ -265,7 +264,7 @@ class GagePreprocessor:
         print(f'Hard reset, loading {self.num_shots_gage} shots from gage raw data')
         # construct file name
         file_name_gage = self.file_prefix_gage+'_00000.h5'
-        hf = h5py.File(self.data_path_gage/file_name_gage, 'r')
+        hf = h5py.File(self.data_path_gage+ '/' + file_name_gage, 'r')
         # store time and frequency vectors after compression
         ch1_pure_vec, ch3_pure_vec, t0_list, timebin_array, cmplx_amp_array, t0_idx_list = self.gen_vectors(hf)
 

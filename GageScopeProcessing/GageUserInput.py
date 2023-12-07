@@ -11,6 +11,8 @@ class GagePreprocessGUI:
         master.title("Gagescope Preprocess Settings GUI")
 
         # Create labels and entry boxes for each variable
+        self.run_num_label = tk.Label(master, text="Run Number (e.g. run0):")
+        self.run_num_entry = tk.Entry(master)
         self.het_freq_label = tk.Label(master, text="Heterodyne Frequency (MHz):")
         self.het_freq_entry = tk.Entry(master)
         self.samp_freq_label = tk.Label(master, text="Sampling Frequency (MHz):")
@@ -33,6 +35,7 @@ class GagePreprocessGUI:
         self.backup_disk_entry = tk.Entry(master)
 
         # Set default values for each entry box
+        self.run_num_entry.insert(0, "run0")
         self.het_freq_entry.insert(0, "20")
         self.samp_freq_entry.insert(0, "200")
         self.step_time_entry.insert(0, "50")
@@ -46,6 +49,8 @@ class GagePreprocessGUI:
         self.submit_button = tk.Button(master, text="Submit", command=self.submit)
 
         # Pack the labels, entry boxes, and button into the GUI
+        self.run_num_label.pack()
+        self.run_num_entry.pack()
         self.het_freq_label.pack()
         self.het_freq_entry.pack()
         self.samp_freq_label.pack()
@@ -77,9 +82,10 @@ class GagePreprocessGUI:
         kappa = float(self.kappa_entry.get()) * 2 * np.pi
         plot_bool = self.plot_bool_entry.get()
         backup_disk = self.backup_disk_entry.get()
-        
+        run_num = self.run_num_entry.get()
 
         # Do something with the variables (e.g. print them to the console)
+        print(f"Run Number: {run_num}")
         print(f"Heterodyne Frequency: {het_freq}")
         print(f"DDS Frequency: {dds_freq}")
         print(f"Sampling Frequency: {samp_freq}")
@@ -88,7 +94,7 @@ class GagePreprocessGUI:
         print(f"LO Power: {LO_power}")
         
         # Run the GagePreprocess function
-        gage_preprocessor = gp.GagePreprocessor("run0",
+        gage_preprocessor = gp.GagePreprocessor(run_num,
                                                 filter_time,
                                                 step_time,
                                                 True,
