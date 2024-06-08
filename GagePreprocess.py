@@ -61,7 +61,7 @@ class GagePreprocessor:
         self.conversion_factor = VOLTAGE_CONVERSION*PHOTON_ENERGY*self.heterodyne_conversion*self.cavity_conversion
         # temporary path just for testing
         dir = os.path.dirname(__file__)
-        self.data_path_gage = Path(dir+'/DataPathGage')
+        self.data_path_gage = Path(dir+'/SampleGageData')
         self.file_prefix_gage = 'gage_shot'
         # path, dirs, files = next(os.walk(data_path_gage))
         num_shot_gage_start = 0

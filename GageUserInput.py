@@ -88,16 +88,7 @@ class GagePreprocessGUI:
         print(f"LO Power: {LO_power}")
         
         # write the settings to a json file
-        settings = {"het_freq": het_freq,
-                    "dds_freq": dds_freq,
-                    "samp_freq": samp_freq,
-                    "step_time": step_time,
-                    "filter_time": filter_time,
-                    "LO_power": LO_power,
-                    "kappa": kappa,
-                    "plot_bool": plot_bool}
-        with open('log' + file_name + '.json', 'w') as fp:
-            json.dump(settings, fp)
+        
         # Run the GagePreprocess function
         gage_preprocessor = gp.GagePreprocessor("run0",
                                                 filter_time,
@@ -109,10 +100,23 @@ class GagePreprocessGUI:
                                                 samp_freq,
                                                 kappa,
                                                 LO_power)
+        gage_preprocessor.gage_loop()
+        settings = {"het_freq": het_freq,
+                    "dds_freq": dds_freq,
+                    "samp_freq": samp_freq,
+                    "step_time": step_time,
+                    "filter_time": filter_time,
+                    "LO_power": LO_power,
+                    "kappa": kappa,
+                    "plot_bool": plot_bool}
+        with open('log' + gage_preprocessor.run_name + '.json', 'w') as fp:
+            json.dump(settings, fp)
+            
         dir = os.path.dirname(__file__)
         gage_folder = "DataPathGage"
-        fo.make_tarfile(dir+backup_disk, gage_folder)
-        fo.kill_processed_file(gage_folder)
+        # THIS IS WHERE THE FILE REMOVAL IS. WE'LL LEAVE IT AS IS FOR NOW
+        # fo.make_tarfile(dir+backup_disk, gage_folder)
+        # fo.kill_processed_file(gage_folder)
         
             
 root = tk.Tk()
