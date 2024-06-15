@@ -16,6 +16,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+e6py/
 parts/
 sdist/
 var/
@@ -24,7 +25,11 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.h5
 MANIFEST
+*.pkl
+*.txt
+*.bz2
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
