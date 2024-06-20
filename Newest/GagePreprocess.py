@@ -1,7 +1,3 @@
-'''
-must updated gage preprocessing file, wrapped up and methodizied for parallel running
-@author Tai Xiang
-'''
 # %%
 from pathlib import Path
 import numpy as np 
@@ -24,17 +20,6 @@ import pickle
 import os
 import pandas as pd
 from scipy.interpolate import interp1d
-
-
-import ipyparams
-
-
-# %% [markdown]
-# Let's first make everything into methods
-
-# %% [markdown]
-# File mismatch glitch set-up
-
 # %%
 def ControlV_Power(x,maximum_power=1):
     x_int=np.array([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.7,1.8,1.9,2,2.2,2.5,2.75,3,3.25,3.5,4,4.5,5,6,7,8,9,10])
@@ -76,7 +61,7 @@ def compute_jkam_nums(num_frames, outer_zoom_factor, jkam_files, override_num_sh
     num_points = len(point_list)
 
     # get jkam reference lengths
-    num_shots_jkam = len(jkam_files)
+    num_shots_jkam = len(jkam_files) - 1
     num_shots = num_shots_jkam
     num_loops = num_shots//num_points
     num_tweezers = len(tweezer_freq_list)
@@ -130,6 +115,7 @@ def set_arb_params(num_frames,
         point_list = np.arange(num_points_outer*num_points_inner)
         plt.plot(point_list)
     num_points = len(point_list)
+    print("num_frames = ", num_frames)
 
     return num_frames, outer_zoom_factor, override_num_shots
 
@@ -146,6 +132,7 @@ def compute_jkam_creation_times(num_frames, outer_zoom_factor, jkam_files, overr
     jkam_creation_time_array =  np.zeros(num_shots)
 
     # store jkam creation times
+    print("jkam shots: ", num_shots)
     for shot_num in range(num_shots):    
         file_name = file_prefix+'_'+str(shot_num).zfill(5)+'.h5'
         jkam_creation_time_array[shot_num] = os.path.getctime(data_path+'/'+file_name)
@@ -367,7 +354,8 @@ def window_demod(num_segments,
     return cmplx_amp_array, cmplx_amp_list_ch1, cmplx_amp_list_ch3, ch1, ch3
 
 
-def rawread_gage(reset_gage, 
+def rawread_gage(outpath,
+                 reset_gage, 
                num_shots_jkam, 
                file_prefix_gage,
                data_path_gage,
@@ -445,8 +433,9 @@ def rawread_gage(reset_gage,
                 # if shot is invalid, store NaN
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
         # store data
-        cmplx_path = f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl'
-        time_path = f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl'
+        cmplx_path = outpath + '/' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl'
+        time_path = outpath + '/' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl'
+        print("Writing new pkl file to: ", cmplx_path)
         with open(cmplx_path,'wb') as f1:
             pickle.dump(cmplx_amp_array, f1)
         with open(time_path,'wb') as f3:
@@ -458,8 +447,8 @@ def rawread_gage(reset_gage,
         num_shots_loaded = get_shot_num(run_name, window, filter_time)
         print(f'loading {num_shots_loaded} shots from gage pickle files')
         try:
-            cmplx_amp_array_old = np.load(f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', allow_pickle=True)
-            timebin_array = np.load(f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', allow_pickle=True)
+            cmplx_amp_array_old = np.load(outpath + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', allow_pickle=True)
+            timebin_array = np.load(outpath + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', allow_pickle=True)
         except:
             print('first time run')
         # there are file mismatches
@@ -512,8 +501,9 @@ def rawread_gage(reset_gage,
                     print(f'invalid data at {shot_num:d}')
                     cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
             # store data
-            cmplx_path = f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl'
-            time_path = f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl'
+            cmplx_path = outpath + '/' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl'
+            time_path = outpath + '/' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl'
+            print("Writing new pkl file to: ", cmplx_path)
             with open(cmplx_path,'wb') as f1:
                 pickle.dump(cmplx_amp_array, f1)
             with open(time_path,'wb') as f3:
@@ -553,13 +543,16 @@ def process_gage_pkl(out_path,
     num_shots, num_loops, num_points, num_tweezers = compute_jkam_nums(num_frames, outer_zoom_factor, jkam_files, override_num_shots, num_shots_manual)
     num_frames, outer_zoom_factor, override_num_shots = set_arb_params(num_frames, point_list_outer, point_list_inner, point_parallel, tweezer_freq_list)
     jkam_creation_time_array, avg_time_gap, num_shots = compute_jkam_creation_times(num_frames, outer_zoom_factor, jkam_files, override_num_shots, jkam_prefix, jkam_path)
-    gage_mask, jkam_gage_matchlist, gage_shots = check_gage_file_mismatch(run_name, window, filter_time, gage_path, jkam_creation_time_array, avg_time_gap, num_shots)
+    print("num jkam shots, ", num_shots)
+    # gage_mask, jkam_gage_matchlist, gage_shots = check_gage_file_mismatch(run_name, window, filter_time, gage_path, jkam_creation_time_array, avg_time_gap, num_shots)
     # set gage_mask to a np array of all True
     # TODO: THIS IS JUST FOR TESTING
     gage_mask = np.ones(num_shots, dtype=bool)
     jkam_gage_matchlist=np.zeros(len(jkam_creation_time_array),dtype='int')
+    gage_shots = len(os.listdir(gage_path))
 
-    cmplx_path, time_path, cmplx_amp, timebin_array = rawread_gage(True,
+    cmplx_path, time_path, cmplx_amp, timebin_array = rawread_gage(out_path,
+                                                                   True,
                                                                    num_shots, 
                                                                    gage_prefix, 
                                                                    gage_path, 
@@ -569,3 +562,5 @@ def process_gage_pkl(out_path,
     return cmplx_path, time_path, cmplx_amp, timebin_array
 
 
+
+# %%
