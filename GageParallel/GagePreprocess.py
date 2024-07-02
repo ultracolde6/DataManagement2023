@@ -144,6 +144,8 @@ def compute_jkam_creation_times(num_frames, outer_zoom_factor, jkam_files, overr
         if shot_num%1000 ==0:
             print(shot_num)
     # compute the average gap time between shots
+    avg_time_gap = np.mean(np.diff(jkam_creation_time_array))
+    return jkam_creation_time_array, avg_time_gap, num_shots
 # %%
 def get_shot_num(run_name, window='hann', filter_time=5, step_time=1):
     # get the shot number from the pickle file
