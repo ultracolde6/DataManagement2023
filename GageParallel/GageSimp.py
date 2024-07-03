@@ -120,10 +120,10 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
     samp_freq = gage_constant_dict['samp_freq']
     step_time = gage_constant_dict['step_time']
     filter_time = gage_constant_dict['filter_time']
-    datastream_name_gage = gage_constant_dict['datastream_name_gage']
-    working_path_gage = gage_constant_dict['working_path_gage']
+    datastream_name_gage = gage_constant_dict['datastream_name']
+    working_path_gage = gage_constant_dict['working_path']
     run_name = gage_constant_dict['run_name']
-    file_prefix_gage = gage_constant_dict['file_prefix_gage']
+    file_prefix_gage = gage_constant_dict['file_prefix']
 
     voltage_conversion = arb_constant_dict['voltage_conversion']
     kappa = arb_constant_dict['kappa']
@@ -138,7 +138,6 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
 
     data_path_gage = working_path_gage/'data'/run_name/datastream_name_gage
     file_prefix_gage = 'gage_shot'
-    print(data_path_gage)
     path, dirs, files = next(os.walk(data_path_gage))
 
     num_shot_gage_start = 0
@@ -177,14 +176,15 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
                             'heterodyne_conversion': heterodyne_conversion,
                             'cavity_conversion': cavity_conversion,
                             'conversion_factor': conversion_factor,
-                            'datastream_name_gage': datastream_name_gage,
-                            'working_path_gage': working_path_gage,
+                            'datastream_name': datastream_name_gage,
+                            'working_path': working_path_gage,
                             'run_name': run_name,
-                            'data_path_gage': data_path_gage,
-                            'file_prefix_gage': file_prefix_gage,
+                            'data_path': data_path_gage,
+                            'file_prefix': file_prefix_gage,
                             'num_shot_gage_start': num_shot_gage_start,
-                            'num_shots_gage': num_shots_gage,
-                            'num_shots_loaded': num_shots_loaded}
+                            'num_shots': num_shots_gage,
+                            'num_shots_loaded': num_shots_loaded,
+                            'file_suffix': '.h5'}
     
     return gage_constant_dict
 # %%
@@ -246,7 +246,7 @@ def gen_jkam_mask_info(jkam_dict, jkam_constants):
 
 
 # %%
-# TODO: THIS CAN LIKELY BE GENERALIZED
+# TODO: THIS IS DEPRECATED, USE JKAM_MASK
 def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
     jkam_mask_constants = gen_jkam_mask_info(jkam_dict, jkam_constants)
     num_shots = jkam_mask_constants['num_shots']
@@ -255,9 +255,9 @@ def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
     jkam_creation_time_array = jkam_mask_constants['jkam_creation_time_array']
     avg_time_gap = jkam_mask_constants['avg_time_gap']
 
-    num_shots_gage = gage_constants['num_shots_gage']
-    file_prefix_gage = gage_constants['file_prefix_gage']
-    data_path_gage = gage_constants['data_path_gage']
+    num_shots_gage = gage_constants['num_shots']
+    file_prefix_gage = gage_constants['file_prefix']
+    data_path_gage = gage_constants['data_path']
     
     gage_creation_time_array = np.zeros(num_shots)
     print("Gathering Gage creation times...")
@@ -295,6 +295,91 @@ def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
 
     return mask_valid_data_gage, jkam_gage_matchlist, gage_index_list
 
+
+# %%
+# TODO: THIS IS UP TO DATE
+def gen_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, target_constants):
+    jkam_mask_constants = jkam_mask_dict
+    num_shots = jkam_mask_constants['num_shots']
+    num_shots_jkam = jkam_mask_constants['num_shots_jkam']
+    num_loops = jkam_mask_constants['num_loops']
+    jkam_creation_time_array = jkam_mask_constants['jkam_creation_time_array']
+    avg_time_gap = jkam_mask_constants['avg_time_gap']
+
+    num_shots_target = target_constants['num_shots']
+    file_prefix_target = target_constants['file_prefix']
+    data_path_target = target_constants['data_path']
+    file_suffix = target_constants['file_suffix']
+
+    target_creation_time_array = np.zeros(num_shots)
+    print("Gathering target device creation times...")
+    # progress bar for loading gage data
+    for shot_num in tqdm(range(num_shots)):
+        if shot_num<num_shots_target:
+            file_name = file_prefix_target+'_'+str(shot_num).zfill(5)+ file_suffix
+            # gage_creation_time_array[shot_num] = os.path.getctime(data_path_gage/file_name)
+            target_creation_time_array[shot_num] = os.path.getmtime(data_path_target/file_name)
+            # modified time again
+    #Check data matching
+    mask_valid_data_target=np.zeros(len(jkam_creation_time_array))>1
+    jkam_gage_matchlist=np.zeros(len(jkam_creation_time_array),dtype='int')-1
+    target_index_list=np.arange(len(target_creation_time_array))
+    
+    print("Matching JKAM and target device data")
+    for shot_num in tqdm(range(num_shots)):
+        time_temp=jkam_creation_time_array[shot_num]
+        space_correct=True
+        if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
+        if (shot_num<(num_shots-1)):
+            if (np.abs(-time_temp+jkam_creation_time_array[shot_num+1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
+                
+        if ((np.min(np.abs(target_creation_time_array-time_temp)) <= 0.3*avg_time_gap)) & space_correct:
+            mask_valid_data_target[shot_num]=True
+            jkam_gage_matchlist[shot_num]=target_index_list[np.argmin(np.abs(target_creation_time_array-time_temp))]
+        else:
+            print(f'error at {shot_num:d}')
+            mask_valid_data_target[shot_num]=False
+
+    plt.plot(jkam_gage_matchlist)
+    plt.title("JKAM" + target_constants['datastream_name'] + ' target device file matchlist')
+    plt.xlabel("JKAM shot number")
+    plt.ylabel(target_constants['datastream_name'] +"target device shot number")
+
+    return mask_valid_data_target, jkam_gage_matchlist, target_index_list
+
+
+# %%
+def RP_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, rp_creation_time_array):
+    jkam_mask_constants = jkam_mask_dict
+    num_shots = jkam_mask_constants['num_shots']
+    num_shots_jkam = jkam_mask_constants['num_shots_jkam']
+    num_loops = jkam_mask_constants['num_loops']
+    jkam_creation_time_array = jkam_mask_constants['jkam_creation_time_array']
+    avg_time_gap = jkam_mask_constants['avg_time_gap']
+
+    mask_valid_data_rp=np.zeros(len(jkam_creation_time_array))>1
+    jkam_rp_matchlist=np.zeros(len(jkam_creation_time_array),dtype='int')-1
+    rp_index_list=np.arange(len(rp_creation_time_array))
+
+    for shot_num in tqdm(range(num_shots)):
+        time_temp=jkam_creation_time_array[shot_num]
+        space_correct=True
+        if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
+        if (shot_num<(num_shots-1)):
+            if (np.abs(-time_temp+jkam_creation_time_array[shot_num+1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
+                
+        if ((np.min(np.abs(rp_creation_time_array-time_temp)) <= 0.3*avg_time_gap)) & space_correct:
+            mask_valid_data_rp[shot_num]=True
+            jkam_rp_matchlist[shot_num]=rp_index_list[np.argmin(np.abs(rp_creation_time_array-time_temp))]
+        else:
+            print(f'error at {shot_num:d}')
+            mask_valid_data_rp[shot_num]=False
+        if shot_num%1000 ==0:
+                print(shot_num)
+
+    plt.plot(jkam_rp_matchlist)
+
+    return mask_valid_data_rp, jkam_rp_matchlist, rp_index_list
 # %%
 def plot_shots(cmplx_amp_list_ch1, 
                cmplx_amp_list_ch3, 
@@ -432,6 +517,7 @@ def perform_gage_demod(user_constants_dict,
                        arb_constant_dict, 
                        gage_constant_dict, 
                        jkam_dict,
+                       jkam_mask_dict,
                        outer_zoom_factor,
                        num_points_inner,
                        num_points_outer,
@@ -448,12 +534,12 @@ def perform_gage_demod(user_constants_dict,
                                         point_list=point_list,
                                         num_points=num_points)
     gage_constants = gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constants)
-    mask_valid_data_gage, jkam_gage_matchlist, gage_index_list = gen_jkamgage_masks(jkam_dict, jkam_constants, gage_constants)
+    mask_valid_data_gage, jkam_gage_matchlist, gage_index_list = gen_jkam_masks(jkam_mask_dict, jkam_dict, jkam_constants, gage_constants)
 
-    num_shots_gage = gage_constants['num_shots_gage']
+    num_shots_gage = gage_constants['num_shots']
     num_shots_loaded = gage_constants['num_shots_loaded']
-    file_prefix_gage = gage_constants['file_prefix_gage']
-    data_path_gage = gage_constants['data_path_gage']
+    file_prefix_gage = gage_constants['file_prefix']
+    data_path_gage = gage_constants['data_path']
     conversion_factor = gage_constants['conversion_factor']
     reset_gage = gage_constants['reset_gage']
     window = gage_constants['window']
