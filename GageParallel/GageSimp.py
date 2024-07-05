@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # %%
 from pathlib import Path
 import numpy as np 
@@ -20,7 +21,7 @@ import pickle
 import os
 import pandas as pd
 from scipy.interpolate import interp1d
-from tqdm.notebook import tqdm
+import datetime
 
 # %%
 
@@ -228,7 +229,7 @@ def gen_jkam_mask_info(jkam_dict, jkam_constants):
 
     jkam_creation_time_array =  np.zeros(num_shots)
     print("Gathering JKAM creation times...")
-    for shot_num in tqdm(range(num_shots)):    
+    for shot_num in range(num_shots):    
         file_name = file_prefix+'_'+str(shot_num).zfill(5)+'.h5'
         # jkam_creation_time_array[shot_num] = os.path.getctime(data_path/file_name)
         jkam_creation_time_array[shot_num] = os.path.getmtime(data_path/file_name)
@@ -262,7 +263,7 @@ def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
     gage_creation_time_array = np.zeros(num_shots)
     print("Gathering Gage creation times...")
     # progress bar for loading gage data
-    for shot_num in tqdm(range(num_shots)):
+    for shot_num in range(num_shots):
         if shot_num<num_shots_gage:
             file_name = file_prefix_gage+'_'+str(shot_num).zfill(5)+'.h5'
             # gage_creation_time_array[shot_num] = os.path.getctime(data_path_gage/file_name)
@@ -274,7 +275,7 @@ def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
     gage_index_list=np.arange(len(gage_creation_time_array))
     
     print("Matching JKAM and Gage data")
-    for shot_num in tqdm(range(num_shots)):
+    for shot_num in range(num_shots):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -314,7 +315,7 @@ def gen_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, target_constants):
     target_creation_time_array = np.zeros(num_shots)
     print("Gathering target device creation times...")
     # progress bar for loading gage data
-    for shot_num in tqdm(range(num_shots)):
+    for shot_num in range(num_shots):
         if shot_num<num_shots_target:
             file_name = file_prefix_target+'_'+str(shot_num).zfill(5)+ file_suffix
             # gage_creation_time_array[shot_num] = os.path.getctime(data_path_gage/file_name)
@@ -326,7 +327,7 @@ def gen_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, target_constants):
     target_index_list=np.arange(len(target_creation_time_array))
     
     print("Matching JKAM and target device data")
-    for shot_num in tqdm(range(num_shots)):
+    for shot_num in range(num_shots):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -361,7 +362,7 @@ def RP_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, rp_creation_time_arr
     jkam_rp_matchlist=np.zeros(len(jkam_creation_time_array),dtype='int')-1
     rp_index_list=np.arange(len(rp_creation_time_array))
 
-    for shot_num in tqdm(range(num_shots)):
+    for shot_num in range(num_shots):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -431,7 +432,7 @@ def compute_demod(reset_gage,
                   ):
     if reset_gage:
         print("Processing raw gage files...")
-        for shot_num in tqdm(range(num_shots_jkam)):
+        for shot_num in range(num_shots_jkam):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage+'_'+str(jkam_gage_matchlist[shot_num]).zfill(5)+'.h5'
                 hf = h5py.File(data_path_gage/file_name_gage, 'r')
@@ -472,7 +473,7 @@ def compute_demod(reset_gage,
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
     else:
         print("Loading from pickle)")
-        for shot_num in tqdm(range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage]))):
+        for shot_num in range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage])):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage+'_'+str(jkam_gage_matchlist[shot_num]).zfill(5)+'.h5'
                 hf = h5py.File(data_path_gage/file_name_gage, 'r')
@@ -648,3 +649,157 @@ def perform_gage_demod(user_constants_dict,
         else:
             cmplx_amp_array=cmplx_amp_array_old
     print(f"number of {num_shots_jkam} shots loaded")
+    
+
+# this will need to run in the background as the other programs run, so we won't have
+# the opportunity to use the analysis notebook scheme of reading in a bunch of parameters
+
+# ENTER YOUR DESIRED PRE-PROCESSING PARAMETERS HERE PRIOR TO THE RUN BEGINNING
+def populate_dicts(root_dir):
+    # the root dir we will get from photon timer "full_dir" parameter
+    run_name = root_dir.split('\\')[-2]
+    working_path = Path('\\'.join(dir.split('\\')[:-2]))
+    #############################################################
+    # USER INPUTS
+    user_dict = {'run_name': run_name,
+                'override_num_shots': False,
+                'reset_hard': True,
+                'num_shots_manual': 286,
+                'num_frames': 3,
+                'point_name_inner': 'delta_pc (MHz)',
+                'point_name_outer': 'pump power (uW)',
+                'point_list_outer': ControlV_Power(np.array([0.8,0.9,1,1.1,1.2,1.3]), 150),
+                'point_list_inner': np.array([-2.45,-2.3,-2.15,-2,-1.85,-1.7,-1.55]),
+                'point_parallel': False,
+                'tweezer_freq_list': 88 + 0.8*0 + 0.8*np.arange(40)}
+    
+    jkam_dict = {'datastream_name': 'High NA Imaging',
+             'working_path': working_path,
+             'file_prefix': 'jkam_capture',
+             'num_shot_start': 0}
+    reset_hard = True
+    gage_constant_dict = {'reset_gage': reset_hard,
+                            'window': 'hann',
+                            'num_segments': 3,
+                            'plot_tenth_shot': True,
+                            'het_freq': 20.000446, # MHz
+                            'dds_freq': 20.00446/2,
+                            'samp_freq': 200, # MHz
+                            'step_time': 5, # us
+                            'filter_time': 5, # us
+                            'datastream_name': 'gage',
+                            'working_path': working_path,
+                            'run_name': run_name,
+                            'file_prefix': 'gage_shot',
+                            'file_suffix': '.h5'}
+    
+    data_path = jkam_dict['working_path']/'data'/user_dict['run_name']/jkam_dict['datastream_name']
+    path, dirs, files = next(os.walk(data_path))
+    num_shots = len(files)
+    
+    if len(user_dict['point_list_inner'])==1:
+        outer_zoom_factor = 1
+    else:
+        outer_zoom_factor=10
+
+    atom_site = []
+    for i in range(user_dict['num_frames']):
+        atom_site.append(np.arange(len(user_dict['tweezer_freq_list'])))
+
+    num_points_inner = len(user_dict['point_list_inner'])
+    num_points_outer = len(user_dict['point_list_outer'])
+    if num_points_inner == 1:
+        point_list = np.array(user_dict['point_list_outer'])
+    elif user_dict['point_parallel'] == False:
+        point_list = (outer_zoom_factor*np.outer(user_dict['point_list_outer'],
+                                                np.ones(len(user_dict['point_list_inner']))) 
+                                                + np.outer(np.ones(len(user_dict['point_list_outer'])),
+                                                            user_dict['point_list_inner'])).flatten()
+    elif user_dict['point_parallel'] == True:
+        point_list = np.arange(num_points_outer*num_points_inner)
+        plt.plot(point_list)
+    num_points = len(point_list)
+    
+    addtl_consts = {'outer_zoom_factor': outer_zoom_factor,
+                    'num_points_inner' : num_points_inner,
+                    'num_points_outer' : num_points_outer,
+                    'point_list' : point_list,
+                    'num_points' : num_points,
+                    'atom_site' : atom_site,
+                    'num_shots': num_shots}
+    
+    jkam_const = gen_jkam_constants(user_dict, 
+                                    jkam_dict, 
+                                    outer_zoom_factor,
+                                    atom_site,
+                                    num_points_inner,
+                                    num_points_outer,
+                                    point_list,
+                                    num_points)
+
+    jkam_mask_dict = gen_jkam_mask_info(jkam_dict, jkam_const)
+    gen_constant_dict = {'voltage_conversion': 1000/32768,
+                        'kappa': 2 * np.pi * 1.1,
+                        'LO_power': 314,
+                        'PHOTON_ENERGY': 2.55e-19}
+ 
+    gage_constant_dict = gen_gage_constants(gen_constant_dict, gage_constant_dict, jkam_const)
+
+    return gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts
+
+
+def naive_impl(root_dir):
+    # nothing fancy, just keep stacking more and more pickl files after waiting 15 seconds
+    gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(root_dir)
+    
+    datastream_name_gage = gage_constant_dict['datastream_name_gage']
+    working_path_gage = gage_constant_dict['working_path_gage']
+    run_name = gage_constant_dict['run_name']
+    gage_path = working_path_gage/'data'/run_name/datastream_name_gage
+    curr_length = len(os.listdir(gage_path))
+    first_run = True
+    
+    while True:
+        print("Current length of gage path: ", curr_length)
+        new_length = len(os.listdir(gage_path))
+        if first_run or new_length > curr_length:
+            try:
+                perform_gage_demod(user_constants_dict=user_dict,
+                 arb_constant_dict = gen_constant_dict,
+                 gage_constant_dict = gage_constant_dict,
+                 jkam_dict = jkam_dict,
+                 jkam_mask_dict = jkam_mask_dict,
+                 outer_zoom_factor = addtl_consts['outer_zoom_factor'],
+                 num_points_inner = addtl_consts['num_points_inner'],
+                 num_points_outer = addtl_consts['num_points_outer'],
+                 point_list = addtl_consts['point_list'],
+                 num_points = addtl_consts['num_points'],
+                 atom_site = addtl_consts['atom_site'],
+                 num_shots_jkam = addtl_consts['num_shots'])
+                
+                print("files processed again. current file number is : ", new_length)
+                time.sleep(2)
+                first_run = False
+                curr_length = new_length
+            except Exception as e:
+                print("processing failed. The following error occurred: ", e)
+            print("files processed again. current file number is : ", new_length)
+            time.sleep(2)
+            first_run = False
+            curr_length = new_length
+            time.sleep(4)
+        else:
+            print("No new files to process.")
+            time.sleep(4)
+            continue
+
+if __name__ == '__main__':
+    DIR_DATA = Path('X:/', 'expdata-e6', 'data')
+    date_dir = datetime.datetime.now().strftime("%Y/%m/%d/")
+    SeqRunName = 'run1'
+    SeqFolderName = 'blah'
+    full_dir = DIR_DATA / date_dir / 'data' / SeqRunName / SeqFolderName
+    
+    naive_impl(full_dir)
+
+    
