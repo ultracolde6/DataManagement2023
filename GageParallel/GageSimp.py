@@ -22,6 +22,7 @@ import os
 import pandas as pd
 from scipy.interpolate import interp1d
 import datetime
+from tqdm import tqdm
 
 # %%
 
@@ -275,7 +276,7 @@ def gen_jkamgage_masks(jkam_dict,jkam_constants, gage_constants):
     gage_index_list=np.arange(len(gage_creation_time_array))
     
     print("Matching JKAM and Gage data")
-    for shot_num in range(num_shots):
+    for shot_num in tqdm(range(num_shots)):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -327,7 +328,7 @@ def gen_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, target_constants):
     target_index_list=np.arange(len(target_creation_time_array))
     
     print("Matching JKAM and target device data")
-    for shot_num in range(num_shots):
+    for shot_num in tqdm(range(num_shots)):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -362,7 +363,7 @@ def RP_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, rp_creation_time_arr
     jkam_rp_matchlist=np.zeros(len(jkam_creation_time_array),dtype='int')-1
     rp_index_list=np.arange(len(rp_creation_time_array))
 
-    for shot_num in range(num_shots):
+    for shot_num in tqdm(range(num_shots)):
         time_temp=jkam_creation_time_array[shot_num]
         space_correct=True
         if (shot_num>0) & (np.abs(time_temp-jkam_creation_time_array[shot_num-1]-avg_time_gap)>0.3*avg_time_gap): space_correct=False
@@ -382,6 +383,7 @@ def RP_jkam_masks(jkam_mask_dict, jkam_dict,jkam_constants, rp_creation_time_arr
 
     return mask_valid_data_rp, jkam_rp_matchlist, rp_index_list
 # %%
+# TODO: PLOTTING THE SHOTS CAUSES THE PROGRAM TO HANG AT AROUND HALFWAY - DON'T PLOT FOR NOW
 def plot_shots(cmplx_amp_list_ch1, 
                cmplx_amp_list_ch3, 
                ch1, 
@@ -408,6 +410,8 @@ def plot_shots(cmplx_amp_list_ch1,
     ax1.set_xlabel("us")
     ax2.set_xlabel("us")
     plt.show()
+    
+    plt.cla()
 
 # %%
 def compute_demod(reset_gage,
@@ -432,7 +436,7 @@ def compute_demod(reset_gage,
                   ):
     if reset_gage:
         print("Processing raw gage files...")
-        for shot_num in range(num_shots_jkam):
+        for shot_num in tqdm(range(num_shots_jkam)):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage+'_'+str(jkam_gage_matchlist[shot_num]).zfill(5)+'.h5'
                 hf = h5py.File(data_path_gage/file_name_gage, 'r')
@@ -461,19 +465,19 @@ def compute_demod(reset_gage,
                     cmplx_amp_array[0, shot_num, seg_num] = cmplx_amp_list_ch1
                     cmplx_amp_array[1, shot_num, seg_num] = cmplx_amp_list_ch3
 
-                if plot_tenth_shot and shot_num == 50:
-                    plot_shots(cmplx_amp_list_ch1, 
-                               cmplx_amp_list_ch3, 
-                               ch1, 
-                               ch3, 
-                               t0_list, 
-                               samp_freq, 
-                               filter_time)
+                # if plot_tenth_shot and shot_num == 50:
+                #     plot_shots(cmplx_amp_list_ch1, 
+                #                cmplx_amp_list_ch3, 
+                #                ch1, 
+                #                ch3, 
+                #                t0_list, 
+                #                samp_freq, 
+                #                filter_time)
             else:
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
     else:
         print("Loading from pickle)")
-        for shot_num in range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage])):
+        for shot_num in tqdm(range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage]))):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage+'_'+str(jkam_gage_matchlist[shot_num]).zfill(5)+'.h5'
                 hf = h5py.File(data_path_gage/file_name_gage, 'r')
@@ -500,14 +504,14 @@ def compute_demod(reset_gage,
                     cmplx_amp_array[0, shot_num, seg_num] = cmplx_amp_list_ch1
                     cmplx_amp_array[1, shot_num, seg_num] = cmplx_amp_list_ch3
                 
-                if plot_tenth_shot and shot_num == 10:
-                    plot_shots(cmplx_amp_list_ch1, 
-                               cmplx_amp_list_ch3, 
-                               ch1, 
-                               ch3, 
-                               t0_list, 
-                               samp_freq, 
-                               filter_time)    
+                # if plot_tenth_shot and shot_num == 10:
+                #     plot_shots(cmplx_amp_list_ch1, 
+                #                cmplx_amp_list_ch3, 
+                #                ch1, 
+                #                ch3, 
+                #                t0_list, 
+                #                samp_freq, 
+                #                filter_time)    
             else:
                 print(f'invalid data at {shot_num:d}')
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
@@ -588,10 +592,15 @@ def perform_gage_demod(user_constants_dict,
                                         plot_tenth_shot,
                                         num_shots_loaded,
                                         num_shots_gage)
-
-        with open(f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl','wb') as f1:
+        outpath = jkam_dict['working_path']/'analysis'/run_name
+        outpath = str(outpath)
+        # use os to make this folder
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+            
+        with open(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl','wb') as f1:
             pickle.dump(cmplx_amp_array, f1)
-        with open(f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl','wb') as f3:
+        with open(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl','wb') as f3:
             pickle.dump(timebin_array, f3)
         print('done')
 
@@ -640,10 +649,14 @@ def perform_gage_demod(user_constants_dict,
                                             plot_tenth_shot,
                                             num_shots_loaded,
                                             num_shots_gage)
-
-            with open(f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl','wb') as f1:
+            outpath = jkam_dict['working_path']/'analysis'/run_name
+            outpath = str(outpath)
+            # use os to make this folder
+            if not os.path.exists(outpath):
+                os.makedirs(outpath)
+            with open(outpath + '/' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl','wb') as f1:
                 pickle.dump(cmplx_amp_array, f1)
-            with open(f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl','wb') as f3:
+            with open(outpath + '/' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl','wb') as f3:
                 pickle.dump(timebin_array, f3)
             print('done')
         else:
@@ -655,12 +668,14 @@ def perform_gage_demod(user_constants_dict,
 # the opportunity to use the analysis notebook scheme of reading in a bunch of parameters
 
 # ENTER YOUR DESIRED PRE-PROCESSING PARAMETERS HERE PRIOR TO THE RUN BEGINNING
-def populate_dicts(root_dir):
+# TODO: READ NUM SEGMENTS AUTOMATICALLY FROM GAGE FILE
+# TODO: BUG: IF THE MATRIX GETS TOO BIG (AKA BIGGER THAN 4GB IT FAILS)
+# TODO: BUG: IF THERE ARE MORE JKAM SHOTS THAN GAGE SHOTS, THAN THE FILE PROCESSING FAILS
+def populate_dicts(root_dir, run_name):
     # the root dir we will get from photon timer "full_dir" parameter
-    run_name = root_dir.split('\\')[-2]
-    working_path = Path('\\'.join(dir.split('\\')[:-2]))
     #############################################################
     # USER INPUTS
+    working_path = Path(root_dir)
     user_dict = {'run_name': run_name,
                 'override_num_shots': False,
                 'reset_hard': True,
@@ -680,12 +695,12 @@ def populate_dicts(root_dir):
     reset_hard = True
     gage_constant_dict = {'reset_gage': reset_hard,
                             'window': 'hann',
-                            'num_segments': 3,
+                            'num_segments': 22,
                             'plot_tenth_shot': True,
                             'het_freq': 20.000446, # MHz
-                            'dds_freq': 20.00446/2,
+                            'dds_freq': 20.000446/2,
                             'samp_freq': 200, # MHz
-                            'step_time': 5, # us
+                            'step_time': 1, # us
                             'filter_time': 5, # us
                             'datastream_name': 'gage',
                             'working_path': working_path,
@@ -748,20 +763,21 @@ def populate_dicts(root_dir):
     return gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts
 
 
-def naive_impl(root_dir):
+def naive_impl(root_dir, run_name):
     # nothing fancy, just keep stacking more and more pickl files after waiting 15 seconds
-    gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(root_dir)
-    
-    datastream_name_gage = gage_constant_dict['datastream_name_gage']
-    working_path_gage = gage_constant_dict['working_path_gage']
+    gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(root_dir, run_name)
+    datastream_name_gage = gage_constant_dict['datastream_name']
+    working_path_gage = gage_constant_dict['working_path']
     run_name = gage_constant_dict['run_name']
     gage_path = working_path_gage/'data'/run_name/datastream_name_gage
     curr_length = len(os.listdir(gage_path))
     first_run = True
     
     while True:
-        print("Current length of gage path: ", curr_length)
+        # TODO: MORE ELEGANTLY FIX BUG WHERE THE NUMBER OF SHOTS IS NOT UPDATED PROPERLY
         new_length = len(os.listdir(gage_path))
+        gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(root_dir, run_name)
+        print("Current length of gage path: ", curr_length)
         if first_run or new_length > curr_length:
             try:
                 perform_gage_demod(user_constants_dict=user_dict,
@@ -783,23 +799,22 @@ def naive_impl(root_dir):
                 curr_length = new_length
             except Exception as e:
                 print("processing failed. The following error occurred: ", e)
-            print("files processed again. current file number is : ", new_length)
+                
             time.sleep(2)
             first_run = False
             curr_length = new_length
-            time.sleep(4)
+            time.sleep(5)
         else:
             print("No new files to process.")
-            time.sleep(4)
+            time.sleep(5)
             continue
 
 if __name__ == '__main__':
-    DIR_DATA = Path('X:/', 'expdata-e6', 'data')
+    dir_data = ('X:/expdata-e6/data')
     date_dir = datetime.datetime.now().strftime("%Y/%m/%d/")
-    SeqRunName = 'run1'
-    SeqFolderName = 'blah'
-    full_dir = DIR_DATA / date_dir / 'data' / SeqRunName / SeqFolderName
+    SeqRunName = 'run2'
+    full_dir = dir_data + '/' + date_dir
     
-    naive_impl(full_dir)
+    naive_impl(full_dir, SeqRunName)
 
     
