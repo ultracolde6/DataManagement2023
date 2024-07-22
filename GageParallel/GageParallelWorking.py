@@ -23,7 +23,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import datetime
 from tqdm import tqdm
-
+# TODO: There is some issue with the pickle running
 
 # %%
 
@@ -261,56 +261,56 @@ def gen_jkam_mask_info(jkam_dict, jkam_constants):
 
 
 # %%
-# TODO: THIS IS DEPRECATED, USE JKAM_MASK
-def gen_jkamgage_masks(jkam_dict, jkam_constants, gage_constants):
-    jkam_mask_constants = gen_jkam_mask_info(jkam_dict, jkam_constants)
-    num_shots = jkam_mask_constants['num_shots']
-    num_shots_jkam = jkam_mask_constants['num_shots_jkam']
-    num_loops = jkam_mask_constants['num_loops']
-    jkam_creation_time_array = jkam_mask_constants['jkam_creation_time_array']
-    avg_time_gap = jkam_mask_constants['avg_time_gap']
+# # TODO: THIS IS DEPRECATED, USE JKAM_MASK
+# def gen_jkamgage_masks(jkam_dict, jkam_constants, gage_constants):
+#     jkam_mask_constants = gen_jkam_mask_info(jkam_dict, jkam_constants)
+#     num_shots = jkam_mask_constants['num_shots']
+#     num_shots_jkam = jkam_mask_constants['num_shots_jkam']
+#     num_loops = jkam_mask_constants['num_loops']
+#     jkam_creation_time_array = jkam_mask_constants['jkam_creation_time_array']
+#     avg_time_gap = jkam_mask_constants['avg_time_gap']
 
-    num_shots_gage = gage_constants['num_shots']
-    file_prefix_gage = gage_constants['file_prefix']
-    data_path_gage = gage_constants['data_path']
+#     num_shots_gage = gage_constants['num_shots']
+#     file_prefix_gage = gage_constants['file_prefix']
+#     data_path_gage = gage_constants['data_path']
 
-    gage_creation_time_array = np.zeros(num_shots)
-    print("Gathering Gage creation times...")
-    # progress bar for loading gage data
-    for shot_num in range(num_shots):
-        if shot_num < num_shots_gage:
-            file_name = file_prefix_gage + '_' + str(shot_num).zfill(5) + '.h5'
-            # gage_creation_time_array[shot_num] = os.path.getctime(data_path_gage/file_name)
-            gage_creation_time_array[shot_num] = os.path.getmtime(data_path_gage / file_name)
-            # modified time again
-    # Check data matching
-    mask_valid_data_gage = np.zeros(len(jkam_creation_time_array)) > 1
-    jkam_gage_matchlist = np.zeros(len(jkam_creation_time_array), dtype='int') - 1
-    gage_index_list = np.arange(len(gage_creation_time_array))
+#     gage_creation_time_array = np.zeros(num_shots)
+#     print("Gathering Gage creation times...")
+#     # progress bar for loading gage data
+#     for shot_num in range(num_shots):
+#         if shot_num < num_shots_gage:
+#             file_name = file_prefix_gage + '_' + str(shot_num).zfill(5) + '.h5'
+#             # gage_creation_time_array[shot_num] = os.path.getctime(data_path_gage/file_name)
+#             gage_creation_time_array[shot_num] = os.path.getmtime(data_path_gage / file_name)
+#             # modified time again
+#     # Check data matching
+#     mask_valid_data_gage = np.zeros(len(jkam_creation_time_array)) > 1
+#     jkam_gage_matchlist = np.zeros(len(jkam_creation_time_array), dtype='int') - 1
+#     gage_index_list = np.arange(len(gage_creation_time_array))
 
-    print("Matching JKAM and Gage data")
-    for shot_num in tqdm(range(num_shots)):
-        time_temp = jkam_creation_time_array[shot_num]
-        space_correct = True
-        if (shot_num > 0) & (np.abs(time_temp - jkam_creation_time_array[
-            shot_num - 1] - avg_time_gap) > 0.3 * avg_time_gap): space_correct = False
-        if (shot_num < (num_shots - 1)):
-            if (np.abs(-time_temp + jkam_creation_time_array[
-                shot_num + 1] - avg_time_gap) > 0.3 * avg_time_gap): space_correct = False
+#     print("Matching JKAM and Gage data")
+#     for shot_num in tqdm(range(num_shots)):
+#         time_temp = jkam_creation_time_array[shot_num]
+#         space_correct = True
+#         if (shot_num > 0) & (np.abs(time_temp - jkam_creation_time_array[
+#             shot_num - 1] - avg_time_gap) > 0.3 * avg_time_gap): space_correct = False
+#         if (shot_num < (num_shots - 1)):
+#             if (np.abs(-time_temp + jkam_creation_time_array[
+#                 shot_num + 1] - avg_time_gap) > 0.3 * avg_time_gap): space_correct = False
 
-        if ((np.min(np.abs(gage_creation_time_array - time_temp)) <= 0.3 * avg_time_gap)) & space_correct:
-            mask_valid_data_gage[shot_num] = True
-            jkam_gage_matchlist[shot_num] = gage_index_list[np.argmin(np.abs(gage_creation_time_array - time_temp))]
-        else:
-            print(f'error at {shot_num:d}')
-            mask_valid_data_gage[shot_num] = False
+#         if ((np.min(np.abs(gage_creation_time_array - time_temp)) <= 0.3 * avg_time_gap)) & space_correct:
+#             mask_valid_data_gage[shot_num] = True
+#             jkam_gage_matchlist[shot_num] = gage_index_list[np.argmin(np.abs(gage_creation_time_array - time_temp))]
+#         else:
+#             print(f'error at {shot_num:d}')
+#             mask_valid_data_gage[shot_num] = False
 
-    plt.plot(jkam_gage_matchlist)
-    plt.title("JKAM Gagescope file matchlist")
-    plt.xlabel("JKAM shot number")
-    plt.ylabel("Gagescope shot number")
+#     plt.plot(jkam_gage_matchlist)
+#     plt.title("JKAM Gagescope file matchlist")
+#     plt.xlabel("JKAM shot number")
+#     plt.ylabel("Gagescope shot number")
 
-    return mask_valid_data_gage, jkam_gage_matchlist, gage_index_list
+#     return mask_valid_data_gage, jkam_gage_matchlist, gage_index_list
 
 
 # %%
@@ -453,11 +453,12 @@ def compute_demod(reset_gage,
                   ch1_pure_vec,
                   ch3_pure_vec,
                   plot_tenth_shot,
-                  num_shots_loaded=0,
-                  num_shots_gage=0,
+                  num_shots_loaded,
+                  num_shots_gage,
+                  pre_proc_cmplx_amp
                   ):
     if reset_gage:
-        print("Processing raw gage files...")
+        print("Processing raw gage files from hard reset...")
         for shot_num in tqdm(range(num_shots_jkam)):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage + '_' + str(jkam_gage_matchlist[shot_num]).zfill(5) + '.h5'
@@ -498,7 +499,9 @@ def compute_demod(reset_gage,
             else:
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
     else:
-        print("Loading from pickle)")
+        print(f'loading {num_shots_loaded} shots from gage pickle files')
+        # load in the unpickled file
+        cmplx_amp_array = pre_proc_cmplx_amp
         for shot_num in tqdm(range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage]))):
             if mask_valid_data_gage[shot_num]:
                 file_name_gage = file_prefix_gage + '_' + str(jkam_gage_matchlist[shot_num]).zfill(5) + '.h5'
@@ -616,7 +619,8 @@ def perform_gage_demod(user_constants_dict,
                                         ch3_pure_vec,
                                         plot_tenth_shot,
                                         num_shots_loaded,
-                                        num_shots_gage)
+                                        num_shots_gage,
+                                        cmplx_amp_array)
         outpath = jkam_dict['working_path'] / 'analysis'
         outpath = str(outpath)
         # use os to make this folder
@@ -675,7 +679,8 @@ def perform_gage_demod(user_constants_dict,
                                             ch3_pure_vec,
                                             plot_tenth_shot,
                                             num_shots_loaded,
-                                            num_shots_gage)
+                                            num_shots_gage,
+                                            cmplx_amp_array)
             outpath = jkam_dict['working_path'] / 'analysis'
             outpath = str(outpath)
             # use os to make this folder
@@ -705,7 +710,7 @@ def populate_dicts(root_dir, run_name):
     working_path = Path(root_dir)
     user_dict = {'run_name': run_name,
                  'override_num_shots': False,
-                 'reset_hard': True,
+                 'reset_hard': False,
                  'num_shots_manual': 286,
                  'num_frames': 3,
                  'point_name_inner': 'delta_pc (MHz)',
@@ -719,8 +724,7 @@ def populate_dicts(root_dir, run_name):
                  'working_path': working_path,
                  'file_prefix': 'jkam_capture',
                  'num_shot_start': 0}
-    reset_hard = True
-    gage_constant_dict = {'reset_gage': reset_hard,
+    gage_constant_dict = {'reset_gage': False,
                           'window': 'hann',
                           'num_segments': 22,
                           'plot_tenth_shot': True,
