@@ -502,7 +502,6 @@ def compute_demod(reset_gage,
             else:
                 cmplx_amp_array[:, shot_num, :, :] = np.array([np.nan])
     else:
-        print(f'loading {num_shots_loaded} shots from gage pickle files')
         # load in the unpickled file
         cmplx_amp_array = pre_proc_cmplx_amp
         for shot_num in tqdm(range(num_shots_loaded, np.min([num_shots_jkam, num_shots_gage]))):
@@ -637,14 +636,20 @@ def perform_gage_demod(user_constants_dict,
         print('done')
 
     else:
+        outpath = jkam_dict['working_path'] / 'analysis'
+        outpath = str(outpath)
+        # use os to make this folder
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+
         print(f'loading {num_shots_loaded} shots from gage pickle files')
         try:
             cmplx_amp_array_old = np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
                                           allow_pickle=True)
             timebin_array = np.load(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl',
                                     allow_pickle=True)
-        except:
-            print('first time run')
+        except Exception as e:
+            print('first time run. Loading pkl failed due to: ' + e)
 
         if (num_shots_jkam > num_shots_loaded):
             print(f'loading {num_shots_loaded} to {np.min([num_shots_jkam, num_shots_gage])} shots from gage raw data')
@@ -684,11 +689,7 @@ def perform_gage_demod(user_constants_dict,
                                             num_shots_loaded,
                                             num_shots_gage,
                                             cmplx_amp_array)
-            outpath = jkam_dict['working_path'] / 'analysis'
-            outpath = str(outpath)
-            # use os to make this folder
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
+            
             with open(outpath + '/' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', 'wb') as f1:
                 pickle.dump(cmplx_amp_array, f1)
             with open(outpath + '/' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', 'wb') as f3:
