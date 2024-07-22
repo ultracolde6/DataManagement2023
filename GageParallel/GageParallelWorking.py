@@ -122,6 +122,9 @@ def gen_jkam_constants(user_constants_dict,
 # %%
 def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict):
     jkam_constants = jkam_constant_dict
+    dir_data = ('X:/expdata-e6/data')
+    date_dir = datetime.datetime.now().strftime("%Y/%m/%d/")
+    outpath = dir_data + '/' + date_dir + '/analysis'
 
     reset_gage = gage_constant_dict['reset_gage']
     window = gage_constant_dict['window']
@@ -163,11 +166,11 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
     start = time.time()
     try:
         num_shots_loaded = \
-        np.load(f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', allow_pickle=True).shape[1]
+        np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', allow_pickle=True).shape[1]
     except FileNotFoundError:
         num_shots_loaded = 0
     try:
-        np.load(f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', allow_pickle=True)
+        np.load(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', allow_pickle=True)
     except FileNotFoundError:
         num_shots_loaded = 0
 
@@ -636,9 +639,9 @@ def perform_gage_demod(user_constants_dict,
     else:
         print(f'loading {num_shots_loaded} shots from gage pickle files')
         try:
-            cmplx_amp_array_old = np.load(f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
+            cmplx_amp_array_old = np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
                                           allow_pickle=True)
-            timebin_array = np.load(f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl',
+            timebin_array = np.load(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl',
                                     allow_pickle=True)
         except:
             print('first time run')
