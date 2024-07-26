@@ -23,6 +23,8 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import datetime
 from tqdm import tqdm
+
+
 # TODO: There is some issue with the pickle running
 
 # %%
@@ -120,12 +122,11 @@ def gen_jkam_constants(user_constants_dict,
 
 
 # %%
-def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict):
+def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict, date_dir):
     jkam_constants = jkam_constant_dict
     dir_data = ('X:/expdata-e6/data')
-    date_dir = datetime.datetime.now().strftime("%Y/%m/%d/")
     outpath = dir_data + '/' + date_dir + '/analysis'
-
+    print("reading into files at: ", outpath)
     reset_gage = gage_constant_dict['reset_gage']
     window = gage_constant_dict['window']
     num_segments = gage_constant_dict['num_segments']
@@ -166,9 +167,13 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
     start = time.time()
     try:
         num_shots_loaded = \
-        np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', allow_pickle=True).shape[1]
+            np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
+                    allow_pickle=True).shape[1]
+
+        print("file found in folder, we can unpickle the pickle: ", outpath)
     except FileNotFoundError:
         num_shots_loaded = 0
+        print("file NOT found in folder, we are pickleless :(: ", outpath)
     try:
         np.load(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', allow_pickle=True)
     except FileNotFoundError:
@@ -200,7 +205,8 @@ def gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constant_dict
                           'num_shot_gage_start': num_shot_gage_start,
                           'num_shots': num_shots_gage,
                           'num_shots_loaded': num_shots_loaded,
-                          'file_suffix': '.h5'}
+                          'file_suffix': '.h5',
+                          'date_dir': date_dir}
 
     return gage_constant_dict
 
@@ -558,7 +564,8 @@ def perform_gage_demod(user_constants_dict,
                        point_list,
                        num_points,
                        atom_site,
-                       num_shots_jkam):
+                       num_shots_jkam,
+                       date_dir):
     jkam_constants = gen_jkam_constants(user_constants_dict=user_constants_dict,
                                         jkam_dict=jkam_dict,
                                         outer_zoom_factor=outer_zoom_factor,
@@ -567,7 +574,7 @@ def perform_gage_demod(user_constants_dict,
                                         num_points_outer=num_points_outer,
                                         point_list=point_list,
                                         num_points=num_points)
-    gage_constants = gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constants)
+    gage_constants = gen_gage_constants(arb_constant_dict, gage_constant_dict, jkam_constants, date_dir)
     mask_valid_data_gage, jkam_gage_matchlist, gage_index_list = gen_jkam_masks(jkam_mask_dict, jkam_dict,
                                                                                 jkam_constants, gage_constants)
 
@@ -644,12 +651,13 @@ def perform_gage_demod(user_constants_dict,
 
         print(f'loading {num_shots_loaded} shots from gage pickle files')
         try:
-            cmplx_amp_array_old = np.load(outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
-                                          allow_pickle=True)
+            cmplx_amp_array_old = np.load(
+                outpath + '\\' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl',
+                allow_pickle=True)
             timebin_array = np.load(outpath + '\\' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl',
                                     allow_pickle=True)
         except Exception as e:
-            print('first time run. Loading pkl failed due to: ' + e)
+            print('first time run. Loading pkl failed due to: ', e)
 
         if (num_shots_jkam > num_shots_loaded):
             print(f'loading {num_shots_loaded} to {np.min([num_shots_jkam, num_shots_gage])} shots from gage raw data')
@@ -689,7 +697,7 @@ def perform_gage_demod(user_constants_dict,
                                             num_shots_loaded,
                                             num_shots_gage,
                                             cmplx_amp_array)
-            
+
             with open(outpath + '/' + f'{run_name}_{window}_gage_cmplx_amp_{filter_time}_{step_time}.pkl', 'wb') as f1:
                 pickle.dump(cmplx_amp_array, f1)
             with open(outpath + '/' + f'{run_name}_{window}_gage_timebin_{filter_time}_{step_time}.pkl', 'wb') as f3:
@@ -707,7 +715,7 @@ def perform_gage_demod(user_constants_dict,
 # TODO: READ NUM SEGMENTS AUTOMATICALLY FROM GAGE FILE
 # TODO: BUG: IF THE MATRIX GETS TOO BIG (AKA BIGGER THAN 4GB IT FAILS)
 # TODO: BUG: IF THERE ARE MORE JKAM SHOTS THAN GAGE SHOTS, THAN THE FILE PROCESSING FAILS
-def populate_dicts(root_dir, run_name):
+def populate_dicts(root_dir, run_name, date_dir):
     # the root dir we will get from photon timer "full_dir" parameter
     #############################################################
     # USER INPUTS
@@ -793,15 +801,16 @@ def populate_dicts(root_dir, run_name):
                          'LO_power': 314,
                          'PHOTON_ENERGY': 2.55e-19}
 
-    gage_constant_dict = gen_gage_constants(gen_constant_dict, gage_constant_dict, jkam_const)
+    gage_constant_dict = gen_gage_constants(gen_constant_dict, gage_constant_dict, jkam_const, date_dir)
 
     return gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts
 
 
-def naive_impl(root_dir, run_name):
+def naive_impl(root_dir, run_name, date_dir):
     # nothing fancy, just keep stacking more and more pickl files after waiting 15 seconds
     gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(root_dir,
-                                                                                                               run_name)
+                                                                                                               run_name,
+                                                                                                               date_dir)
     datastream_name_gage = gage_constant_dict['datastream_name']
     working_path_gage = gage_constant_dict['working_path']
     run_name = gage_constant_dict['run_name']
@@ -813,7 +822,7 @@ def naive_impl(root_dir, run_name):
         # TODO: MORE ELEGANTLY FIX BUG WHERE THE NUMBER OF SHOTS IS NOT UPDATED PROPERLY
         new_length = len(os.listdir(gage_path))
         gage_constant_dict, gen_constant_dict, user_dict, jkam_mask_dict, jkam_dict, addtl_consts = populate_dicts(
-            root_dir, run_name)
+            root_dir, run_name, date_dir)
         print("Current length of gage path: ", curr_length)
         if first_run or new_length > curr_length:
             try:
@@ -828,7 +837,8 @@ def naive_impl(root_dir, run_name):
                                    point_list=addtl_consts['point_list'],
                                    num_points=addtl_consts['num_points'],
                                    atom_site=addtl_consts['atom_site'],
-                                   num_shots_jkam=addtl_consts['num_shots'])
+                                   num_shots_jkam=addtl_consts['num_shots'],
+                                   date_dir = date_dir)
 
                 print("files processed again. current file number is : ", new_length)
                 time.sleep(2)
@@ -850,9 +860,21 @@ def naive_impl(root_dir, run_name):
 if __name__ == '__main__':
     dir_data = ('X:/expdata-e6/data')
     date_dir = datetime.datetime.now().strftime("%Y/%m/%d/")
+    # USE THIS TO SET THE MANUAL DATE IF YOU WANT TO SELECT A SPECIFIC DAY TO PROCESS
+    manual_date = '2024/07/25'
+    date_dir = manual_date
     ################ CHANGE THE RUN NUMBER AS YOU GO
-    SeqRunName = 'run6'
+    SeqRunName = 'run1'
     full_dir = dir_data + '/' + date_dir
+    ################ UNCOMMENT THIS TO USE THE MANUAL DATE
+    # full_dir = dir_data + '/' + manual_date
+    naive_impl(full_dir, SeqRunName, date_dir)
 
-    naive_impl(full_dir, SeqRunName)
-
+    # TODO: DAY NIGHT CYCLE ISSUE: IF THE RUN GOES OVERNIGHT, THE PROGRAM
+    # WILL CHANGE TO LOOKING FOR PICKLE FILES IN THE NEW DAY, FOR WHICH
+    # A DATA FOLDER DOES NOT EXIST!!! THIS IS HOW WE NEED TO RESOLVE IT:
+    #
+    # STORE A STARTING DATETIME
+    # IF DATETIME.NOW IS DIFFERENT FROM THE STARTING DATETIME, CONTINUE LOOKING
+    # FOR FILES IN THE STARTING DATETIME
+    # OR WE COULD JUST FIX THE STARTING DATETIME TO THE INITIAL VALUE
